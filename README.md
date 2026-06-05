@@ -17,6 +17,7 @@ Install all five skill folders from this repo:
 ```bash
 python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
   --repo everydy/visual-explainer-skill \
+  --method git \
   --path visual-explainer structure-map-html flow-html comparison-html mini-slide-html
 ```
 
