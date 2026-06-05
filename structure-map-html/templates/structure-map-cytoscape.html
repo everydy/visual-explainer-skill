@@ -1,0 +1,1398 @@
+<!doctype html>
+<html lang="ko" data-template="structure-map-cytoscape-v1">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>구조도 템플릿</title>
+  <!--
+    CDN prototype path. For offline-safe artifacts, replace src with:
+    assets/cytoscape/cytoscape.min.js
+  -->
+  <script data-cytoscape-source="cdn" src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+  <style>
+    :root {
+      --ink: #1f2933;
+      --muted: #64707d;
+      --line: #d8dee8;
+      --paper: #f7f8fb;
+      --panel: #ffffff;
+          --blue: #2563eb;
+          --green: #15803d;
+          --yellow: #ca8a04;
+          --gold: #c2410c;
+      --red: #b91c1c;
+      --violet: #6d28d9;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    main {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 32px 20px 24px;
+    }
+    .page-head {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 0 22px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+    .help-popover {
+      position: relative;
+      margin-left: auto;
+    }
+    .help-popover summary {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+      border-radius: var(--radius);
+    }
+    .help-popover summary::-webkit-details-marker {
+      display: none;
+    }
+    .help-popover[open] summary {
+      border-color: var(--ink);
+      background: #eef3f7;
+    }
+    .help-card {
+      position: absolute;
+      z-index: 8;
+      top: 42px;
+      right: 0;
+      width: min(360px, calc(100vw - 40px));
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 12px 14px;
+      box-shadow: 0 12px 28px rgba(31, 41, 51, 0.14);
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+      border-radius: var(--radius);
+    }
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      height: calc(100vh - 132px);
+      min-height: 560px;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .graph-wrap {
+      position: relative;
+      min-height: 0;
+      border-right: 1px solid var(--line);
+    }
+    #cy {
+      position: absolute;
+      inset: 0;
+      min-height: 0;
+    }
+    .edge-label-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .edge-label-badge {
+      position: absolute;
+      left: 0;
+      top: 0;
+      max-width: 360px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.9);
+      color: #475569;
+      padding: 15px;
+      font: 700 50px/1.15 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      white-space: nowrap;
+      cursor: pointer;
+      transform-origin: center;
+      pointer-events: auto;
+      border-radius: var(--radius);
+    }
+    .edge-label-badge:hover {
+      border-color: var(--blue);
+      color: var(--ink);
+    }
+    .edge-label-badge.is-dimmed {
+      opacity: 0.8;
+    }
+    .edge-label-badge.is-pair {
+      border-color: #b7c7f4;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    .toolbar {
+      position: absolute;
+      z-index: 2;
+      left: 14px;
+      top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: var(--radius);
+    }
+    button:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+    button[aria-pressed="true"] {
+      border-color: var(--ink);
+      background: #eef3f7;
+      color: var(--ink);
+      font-weight: 700;
+    }
+    .graph-meta {
+      position: absolute;
+      z-index: 2;
+      left: 14px;
+      bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      max-width: calc(100% - 28px);
+      color: var(--muted);
+      font-size: 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .graph-meta::-webkit-scrollbar {
+      display: none;
+    }
+    .pill {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      padding: 6px 8px;
+      border-radius: var(--radius);
+    }
+    .side {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: auto;
+    }
+    .side h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+    .side p,
+    .details span {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: nowrap;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+    .legend li {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      color: #3a4852;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 2px solid currentColor;
+      background: #fff;
+    }
+    .problem { color: var(--red); }
+    .concept { color: var(--green); }
+        .runtime { color: var(--yellow); }
+    .verify { color: var(--gold); }
+    .doc { color: var(--violet); }
+    .details {
+      padding-top: 0;
+    }
+    .details .kind {
+      display: inline-flex;
+      width: fit-content;
+      margin-bottom: 8px;
+      border: 1px solid var(--line);
+      padding: 4px 7px;
+      color: #465661;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: var(--radius);
+    }
+        .detail-badges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin: 0 0 8px;
+        }
+        .detail-title-row {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 7px;
+          margin-bottom: 9px;
+        }
+        .detail-title-row .detail-badges {
+          margin: 0;
+        }
+        .role-badge {
+          display: inline-flex;
+          width: fit-content;
+          align-items: center;
+          min-height: 20px;
+          border: 1px solid var(--line);
+          background: #fff;
+          padding: 2px 6px;
+          color: var(--muted);
+          font-size: 11px;
+          font-weight: 700;
+          line-height: 1.2;
+          border-radius: var(--radius);
+        }
+    .role-badge.problem { border-color: #fecaca; background: #fef2f2; color: var(--red); }
+    .role-badge.concept { border-color: #bbf7d0; background: #ecfdf3; color: var(--green); }
+        .role-badge.runtime { border-color: #fde047; background: #fefce8; color: #a16207; }
+        .role-badge.verify { border-color: #fdba74; background: #fff7ed; color: var(--gold); }
+    .role-badge.doc { border-color: #ddd6fe; background: #f5f3ff; color: var(--violet); }
+        .details strong {
+          display: block;
+          margin: 0 0 8px;
+          font-size: 20px;
+          line-height: 1.25;
+        }
+        .detail-title-row strong {
+          margin: 0;
+        }
+    .details .path {
+      display: block;
+      margin: 0 0 8px;
+      color: #40515d;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+    .details .hint {
+      display: block;
+      margin-top: 10px;
+      color: #7b8792;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .details .relations {
+      margin-top: 14px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+    .detail-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .detail-card {
+      border: 1px solid var(--line);
+      background: #fbfcfd;
+      padding: 10px;
+      border-radius: var(--radius);
+    }
+    .detail-card.role-card-problem { border-color: #fecaca; background: #fef2f2; }
+    .detail-card.role-card-concept { border-color: #bbf7d0; background: #ecfdf3; }
+    .detail-card.role-card-runtime { border-color: #fde047; background: #fefce8; }
+    .detail-card.role-card-verify { border-color: #fdba74; background: #fff7ed; }
+    .detail-card.role-card-doc { border-color: #ddd6fe; background: #f5f3ff; }
+    .detail-card-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 7px;
+    }
+    .detail-card-heading .detail-badges {
+      margin: 0;
+    }
+        .detail-card b {
+          display: block;
+          margin: 0 0 5px;
+          color: var(--ink);
+          font-size: 15px;
+          line-height: 1.25;
+        }
+    .detail-card-heading b {
+      margin: 0;
+    }
+    .detail-card span {
+      display: block;
+    }
+    .relation-card {
+      position: relative;
+      border: 1px solid #d8e0e7;
+      background: #f8fafb;
+      padding: 12px 14px 12px 18px;
+      text-align: left;
+      border-radius: var(--radius);
+    }
+    .relation-card::before,
+    .relation-card::after {
+      content: "";
+      position: absolute;
+      left: 24px;
+      width: 1px;
+      height: 10px;
+      background: #c7d2dc;
+      transform: translateX(-50%);
+    }
+    .relation-card::before {
+      top: -10px;
+    }
+    .relation-card::after {
+      bottom: -10px;
+    }
+    .relation-card .relation-main {
+      display: block;
+      color: var(--ink);
+      font-weight: 700;
+      line-height: 1.45;
+    }
+    .details .relations h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+    .relation-list {
+      display: grid;
+      gap: 8px;
+    }
+    .relation-group + .relation-group {
+      margin-top: 14px;
+    }
+    .relation-item {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 8px;
+      text-align: left;
+      color: var(--ink);
+      border-radius: var(--radius);
+    }
+    .relation-item:hover {
+      border-color: var(--blue);
+      color: var(--ink);
+    }
+    .relation-label {
+      display: block;
+      color: #1f2933;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+    .relation-path {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .relation-more {
+      display: block;
+      margin-top: 8px;
+      color: #7b8792;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .fallback {
+      display: none;
+      padding: 22px;
+      color: var(--muted);
+      line-height: 1.6;
+      border-radius: var(--radius);
+    }
+    .fallback.visible { display: block; }
+    .fallback ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+    @media (max-width: 860px) {
+      main { padding: 22px 14px 36px; }
+      h1 { font-size: 24px; }
+      .page-head { margin-bottom: 16px; }
+      .shell {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 0;
+      }
+      .graph-wrap {
+        min-height: 620px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      #cy {
+        top: 58px;
+        min-height: 562px;
+      }
+      .edge-label-layer {
+        top: 58px;
+      }
+      .toolbar {
+        position: static;
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        background: #f8fafb;
+      }
+      .graph-meta {
+        top: 70px;
+        bottom: auto;
+        right: 12px;
+        left: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="page-head">
+      <h1>구조도 템플릿</h1>
+      <details class="help-popover">
+        <summary aria-label="구조도 읽는 법">?</summary>
+        <div class="help-card">
+          각 항목은 노드(관계도에서 점처럼 보이는 개념)이고, 화살표는 엣지(두 노드 사이의 관계선)다. 노드나 관계선을 누르면 오른쪽 설명이 바뀐다.
+        </div>
+      </details>
+    </header>
+
+    <section class="shell" aria-label="노드-엣지 구조도">
+      <div class="graph-wrap">
+        <div class="toolbar" aria-label="그래프 보기 조작">
+          <button type="button" id="fit">전체 보기</button>
+          <button type="button" id="breadth" aria-pressed="true">정렬 보기</button>
+          <button type="button" id="circle" aria-pressed="false">순환 보기</button>
+        </div>
+        <div class="graph-meta" aria-label="그래프 상태">
+          <span class="pill" id="node-count">노드 0</span>
+          <span class="pill" id="edge-count">엣지 0</span>
+          <ul class="legend" aria-label="범례">
+            <li><span class="dot problem"></span><span>문제/출발점</span></li>
+            <li><span class="dot concept"></span><span>개념/설계</span></li>
+            <li><span class="dot runtime"></span><span>실행/연결</span></li>
+            <li><span class="dot verify"></span><span>검증</span></li>
+            <li><span class="dot doc"></span><span>문서/운영</span></li>
+          </ul>
+        </div>
+        <div id="cy" aria-label="Cytoscape 노드-엣지 그래프"></div>
+        <div id="edge-label-layer" class="edge-label-layer" aria-label="관계 라벨"></div>
+        <div id="fallback" class="fallback">
+          Cytoscape.js를 불러오지 못해 텍스트 fallback을 표시한다.
+          <ul>
+            <li>문제는 핵심 개념으로 이어진다.</li>
+            <li>핵심 개념은 실행 구조를 만든다.</li>
+            <li>실행 구조는 검증과 문서로 고정된다.</li>
+          </ul>
+        </div>
+      </div>
+
+      <aside class="side" aria-label="구조도 설명">
+        <section class="details" id="details" aria-live="polite">
+          <span class="kind">선택 없음</span>
+          <strong>구조도</strong>
+          <span>노드나 관계선을 선택하면 해당 항목이 왜 필요한지 표시된다.</span>
+          <span class="hint">Esc 키나 빈 그래프 영역 클릭으로 전체 관계망으로 돌아갈 수 있다.</span>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const graphElements = [
+      { data: { id: 'problem', label: '문제', type: 'problem', detail: '구조도가 풀어야 하는 출발점이다.' }, position: { x: 0, y: 0 } },
+      { data: { id: 'concept', label: '핵심 개념', type: 'concept', detail: '설명 대상의 중심 개념이다.' }, position: { x: 1600, y: 0 } },
+      { data: { id: 'runtime', label: '실행 구조', type: 'runtime', detail: '개념이 실제 산출물이나 동작으로 이어지는 부분이다.' }, position: { x: 3200, y: 0 } },
+      { data: { id: 'verify', label: '검증', type: 'verify', detail: '구조도가 제대로 작동하는지 확인하는 기준이다.' }, position: { x: 3200, y: 1400 } },
+      { data: { id: 'doc', label: '문서화', type: 'doc', detail: '다음 작업자가 이어받을 수 있게 남기는 설명이다.' }, position: { x: 1600, y: 1400 } },
+      { data: { id: 'e1', source: 'problem', target: 'concept', label: '문제를 개념으로 정리', displayLabel: '개념으로 정리한다' } },
+      { data: { id: 'e2', source: 'concept', target: 'runtime', label: '개념을 실행으로 연결', displayLabel: '실행으로 연결한다' } },
+      { data: { id: 'e3', source: 'runtime', target: 'verify', label: '실행 결과를 확인', displayLabel: '결과를 확인한다' } },
+      { data: { id: 'e4', source: 'verify', target: 'doc', label: '검증 근거를 기록', displayLabel: '근거를 기록한다' } },
+      { data: { id: 'e5', source: 'doc', target: 'concept', label: '다음 설명에 재사용', displayLabel: '설명에 재사용한다' } }
+    ];
+
+    const detailBox = document.getElementById('details');
+    const nodeCount = document.getElementById('node-count');
+    const edgeCount = document.getElementById('edge-count');
+    const edgeLabelLayer = document.getElementById('edge-label-layer');
+    const layoutButtons = {
+      breadth: document.getElementById('breadth'),
+      circle: document.getElementById('circle')
+    };
+    const RELATION_PREVIEW_LIMIT = 5;
+    const NODE_LABEL_FONT_SIZE = 80;
+    const NODE_LABEL_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    const NODE_LABEL_FONT_WEIGHT = 700;
+    const NODE_LABEL_HORIZONTAL_PADDING = 40;
+    const NODE_BOX_MIN_WIDTH = 560;
+    const NODE_BOX_MAX_WIDTH = 560;
+    const NODE_BOX_MIN_HEIGHT = 230;
+    const NODE_BOX_MAX_HEIGHT = 330;
+    const NODE_CORNER_RADIUS = 40;
+    const NODE_TEXT_MIN_WIDTH = 520;
+    const NODE_TEXT_MAX_WIDTH = 520;
+    const NODE_LABEL_LINE_HEIGHT = 92;
+    const NODE_LABEL_VERTICAL_PADDING = 72;
+    const EDGE_LABEL_OFFSET = 17;
+    const EDGE_LABEL_SELECTED_OFFSET = 22;
+    const EDGE_LABEL_FONT_SIZE = 50;
+    const EDGE_LABEL_PADDING_Y = 15;
+    const EDGE_LABEL_PADDING_X = 15;
+    const EDGE_LABEL_HORIZONTAL_PADDING = EDGE_LABEL_PADDING_X * 2;
+    const EDGE_LABEL_LINE_PADDING = 32;
+    const EDGE_LABEL_CLEARANCE_ITERATIONS = 3;
+    const EDGE_LABEL_CLEARANCE_DELAY = 40;
+    const EDGE_CURVE_DISTANCE = 78;
+    const EDGE_CURVE_SELECTED_DISTANCE = 88;
+    const GRAPH_MIN_ZOOM = 0.05;
+    const FIT_GRAPH_PADDING = 96;
+    const nodeMeasureCanvas = document.createElement('canvas');
+    const nodeMeasureContext = nodeMeasureCanvas.getContext('2d');
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function clampNumber(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function measureNodeLabelWidth(label) {
+      if (!nodeMeasureContext) {
+        return String(label || '').length * NODE_LABEL_FONT_SIZE;
+      }
+      nodeMeasureContext.font = `${NODE_LABEL_FONT_WEIGHT} ${NODE_LABEL_FONT_SIZE}px ${NODE_LABEL_FONT_FAMILY}`;
+      return nodeMeasureContext.measureText(String(label || '')).width;
+    }
+
+    function measureEdgeLabelWidth(edgeDataOrLabel) {
+      const text = edgeDisplayLabel(edgeDataOrLabel);
+      if (!nodeMeasureContext) {
+        return text.length * EDGE_LABEL_FONT_SIZE + EDGE_LABEL_HORIZONTAL_PADDING;
+      }
+      nodeMeasureContext.font = `700 ${EDGE_LABEL_FONT_SIZE}px ${NODE_LABEL_FONT_FAMILY}`;
+      return Math.ceil(nodeMeasureContext.measureText(text).width + EDGE_LABEL_HORIZONTAL_PADDING);
+    }
+
+    function edgeDisplayLabel(edgeDataOrLabel) {
+      const value = edgeDataOrLabel && typeof edgeDataOrLabel === 'object'
+        ? edgeDataOrLabel.displayLabel || edgeDataOrLabel.predicateLabel || edgeDataOrLabel.shortLabel || edgeDataOrLabel.label
+        : edgeDataOrLabel;
+      const text = String(value || '').trim();
+      if (!text) return '';
+      return text;
+    }
+
+    function nodeBoxWidth(node) {
+      const labelWidth = measureNodeLabelWidth(node.data('label'));
+      return clampNumber(
+        Math.ceil(labelWidth + NODE_LABEL_HORIZONTAL_PADDING),
+        NODE_BOX_MIN_WIDTH,
+        NODE_BOX_MAX_WIDTH
+      );
+    }
+
+    function nodeTextMaxWidth(node) {
+      return clampNumber(
+        nodeBoxWidth(node) - NODE_LABEL_HORIZONTAL_PADDING,
+        NODE_TEXT_MIN_WIDTH,
+        NODE_TEXT_MAX_WIDTH
+      );
+    }
+
+    function estimateNodeLabelLineCount(label, maxWidth) {
+      const text = String(label || '').trim();
+      if (!text) return 1;
+      if (!nodeMeasureContext) {
+        return Math.max(1, Math.ceil(text.length / 8));
+      }
+      nodeMeasureContext.font = `${NODE_LABEL_FONT_WEIGHT} ${NODE_LABEL_FONT_SIZE}px ${NODE_LABEL_FONT_FAMILY}`;
+      let lines = 1;
+      let currentLine = '';
+      for (const char of Array.from(text)) {
+        if (char === '\n') {
+          lines += 1;
+          currentLine = '';
+          continue;
+        }
+        const nextLine = `${currentLine}${char}`;
+        if (currentLine && nodeMeasureContext.measureText(nextLine).width > maxWidth) {
+          lines += 1;
+          currentLine = char.trimStart();
+        } else {
+          currentLine = nextLine;
+        }
+      }
+      return lines;
+    }
+
+    function nodeBoxHeight(node) {
+      const lineCount = estimateNodeLabelLineCount(node.data('label'), nodeTextMaxWidth(node));
+      return clampNumber(
+        Math.ceil(lineCount * NODE_LABEL_LINE_HEIGHT + NODE_LABEL_VERTICAL_PADDING),
+        NODE_BOX_MIN_HEIGHT,
+        NODE_BOX_MAX_HEIGHT
+      );
+    }
+
+    function edgeCurveDirection(edgeElement) {
+      const id = String(edgeElement.id ? edgeElement.id() : edgeElement.data('id') || '');
+      let hash = 0;
+      for (const char of id) {
+        hash = (hash + char.charCodeAt(0)) % 2;
+      }
+      return hash === 0 ? 1 : -1;
+    }
+
+    function edgeNodePairKey(edgeElement) {
+      const source = String(edgeElement.data('source') || '');
+      const target = String(edgeElement.data('target') || '');
+      return source < target ? `${source}|${target}` : `${target}|${source}`;
+    }
+
+    function edgeNeedsCurve(edgeElement) {
+      const data = edgeElement.data();
+      if (data.curve === true || data.curve === 'true') return true;
+      if (data.source === data.target) return true;
+      const pairKey = edgeNodePairKey(edgeElement);
+      let count = 0;
+      for (const element of graphElements) {
+        if (!element.data || !element.data.source || !element.data.target) continue;
+        const source = String(element.data.source);
+        const target = String(element.data.target);
+        const currentKey = source < target ? `${source}|${target}` : `${target}|${source}`;
+        if (currentKey === pairKey) count += 1;
+      }
+      return count > 1;
+    }
+
+    function edgeCurveStyle(edgeElement) {
+      return edgeNeedsCurve(edgeElement) ? 'unbundled-bezier' : 'straight';
+    }
+
+    function edgeCurveDistance(edgeElement) {
+      if (!edgeNeedsCurve(edgeElement)) return 0;
+      const distance = edgeElement.hasClass && edgeElement.hasClass('pair-edge')
+        ? EDGE_CURVE_SELECTED_DISTANCE
+        : EDGE_CURVE_DISTANCE;
+      return edgeCurveDirection(edgeElement) * distance;
+    }
+
+    const NODE_ROLE_META = {
+      problem: { label: '문제/출발점', className: 'problem' },
+      concept: { label: '개념/설계', className: 'concept' },
+      runtime: { label: '실행/연결', className: 'runtime' },
+      verify: { label: '검증', className: 'verify' },
+      doc: { label: '문서/운영', className: 'doc' }
+    };
+
+    function nodeRoleMeta(nodeOrType) {
+      const type = typeof nodeOrType === 'string'
+        ? nodeOrType
+        : nodeOrType && nodeOrType.data
+          ? nodeOrType.data('type')
+          : '';
+      return NODE_ROLE_META[type] || null;
+    }
+
+        function roleBadgeMarkup(nodeOrType) {
+          const meta = nodeRoleMeta(nodeOrType);
+          if (!meta) return '';
+          return `<span class="role-badge ${escapeHtml(meta.className)}">${escapeHtml(meta.label)}</span>`;
+        }
+
+        function roleCardClass(nodeOrType) {
+          const meta = nodeRoleMeta(nodeOrType);
+          return meta ? `role-card-${escapeHtml(meta.className)}` : '';
+        }
+
+        function setDetail(kind, title, detail, path = '', extraMarkup = '', badgeMarkup = '') {
+          const pathMarkup = path ? `<span class="path">${escapeHtml(path)}</span>` : '';
+          const detailMarkup = detail ? `<span>${escapeHtml(detail)}</span>` : '';
+          const titleMarkup = badgeMarkup
+            ? `<div class="detail-title-row"><strong>${escapeHtml(title)}</strong><div class="detail-badges">${badgeMarkup}</div></div>`
+            : `<strong>${escapeHtml(title)}</strong>`;
+          detailBox.innerHTML = `
+            <span class="kind">${escapeHtml(kind)}</span>
+            ${titleMarkup}
+            ${pathMarkup}
+            ${detailMarkup}
+            ${extraMarkup}
+        <span class="hint">Esc 키나 빈 그래프 영역 클릭으로 전체 관계망으로 돌아갈 수 있다.</span>
+      `;
+    }
+
+    function relationShortcut(graph, edge, nodeId) {
+      const isOutgoing = edge.source === nodeId;
+      const nextNodeId = isOutgoing ? edge.target : edge.source;
+      const nextLabel = graph.getElementById(nextNodeId).data('label');
+      return `${isOutgoing ? '→' : '←'} ${nextLabel}`;
+    }
+
+    function otherNodeId(edge, anchorNodeId) {
+      if (edge.source === anchorNodeId) return edge.target;
+      if (edge.target === anchorNodeId) return edge.source;
+      return edge.target;
+    }
+
+    function renderRelationGroup(graph, title, anchorNodeId, groupedEdges) {
+      if (!groupedEdges.length) return '';
+      const items = groupedEdges.slice(0, RELATION_PREVIEW_LIMIT).map((edgeElement) => {
+        const edge = edgeElement.data();
+        const relation = relationShortcut(graph, edge, anchorNodeId);
+        const nextNodeId = otherNodeId(edge, anchorNodeId);
+        return `
+          <button type="button" class="relation-item" data-edge-id="${escapeHtml(edge.id || edgeElement.id())}" data-next-node-id="${escapeHtml(nextNodeId)}">
+            <span class="relation-label">${escapeHtml(edge.label)}</span>
+            <span class="relation-path">${escapeHtml(relation)}</span>
+          </button>
+        `;
+      }).join('');
+      const hiddenCount = groupedEdges.length - RELATION_PREVIEW_LIMIT;
+      const moreMarkup = hiddenCount > 0
+        ? `<span class="relation-more">외 ${hiddenCount}개 관계는 그래프에서 직접 확인한다.</span>`
+        : '';
+      return `
+        <div class="relation-group">
+          <h3>${escapeHtml(title)}</h3>
+          <div class="relation-list">${items}</div>
+          ${moreMarkup}
+        </div>
+      `;
+    }
+
+    function renderRelationList(graph, node, connectedEdges, options = {}) {
+      const excludedEdgeIds = new Set(options.excludeEdgeIds || []);
+      const excludedNodeIds = new Set(options.excludeNodeIds || []);
+      const nodeId = node.id();
+      const edges = connectedEdges.toArray().filter((edgeElement) => {
+        const edge = edgeElement.data();
+        const nextNodeId = otherNodeId(edge, nodeId);
+        return !excludedEdgeIds.has(edgeElement.id()) && !excludedNodeIds.has(nextNodeId);
+      });
+      if (!edges.length) {
+        return `
+          <section class="relations" aria-label="이어진 관계">
+            <span class="hint">이 노드에서 바로 이어볼 후보가 없다.</span>
+          </section>
+        `;
+      }
+
+      const incomingEdges = edges.filter((edgeElement) => edgeElement.data('target') === nodeId);
+      const outgoingEdges = edges.filter((edgeElement) => edgeElement.data('source') === nodeId);
+      const groups = [
+        renderRelationGroup(graph, '이전 후보', nodeId, incomingEdges),
+        renderRelationGroup(graph, '다음 후보', nodeId, outgoingEdges)
+      ].join('');
+
+      return `
+        <section class="relations" aria-label="이어진 관계">
+          ${groups}
+        </section>
+      `;
+    }
+
+    function renderPairRelationList(graph, sourceNode, targetNode, options = {}) {
+      const excludedEdgeIds = new Set(options.excludeEdgeIds || []);
+      const sourceId = sourceNode.id();
+      const targetId = targetNode.id();
+      const previousEdges = sourceNode.connectedEdges().toArray().filter((edgeElement) => {
+        const edge = edgeElement.data();
+        return edge.target === sourceId && otherNodeId(edge, sourceId) !== targetId && !excludedEdgeIds.has(edgeElement.id());
+      });
+      const nextEdges = targetNode.connectedEdges().toArray().filter((edgeElement) => {
+        const edge = edgeElement.data();
+        return edge.source === targetId && otherNodeId(edge, targetId) !== sourceId && !excludedEdgeIds.has(edgeElement.id());
+      });
+      if (!previousEdges.length && !nextEdges.length) {
+        return `
+          <section class="relations" aria-label="이어진 관계">
+            <span class="hint">이 쌍에서 바로 이어볼 후보가 없다.</span>
+          </section>
+        `;
+      }
+      return `
+        <section class="relations" aria-label="이어진 관계">
+          ${renderRelationGroup(graph, '이전 후보', sourceId, previousEdges)}
+          ${renderRelationGroup(graph, '다음 후보', targetId, nextEdges)}
+        </section>
+      `;
+    }
+
+    function showFallback() {
+      document.getElementById('fallback').classList.add('visible');
+      document.getElementById('cy').style.display = 'none';
+    }
+
+    window.addEventListener('load', () => {
+      if (!window.cytoscape) {
+        showFallback();
+        return;
+      }
+
+      const cy = cytoscape({
+        container: document.getElementById('cy'),
+        elements: graphElements,
+        wheelSensitivity: 0.2,
+        minZoom: GRAPH_MIN_ZOOM,
+        maxZoom: 2,
+        style: [
+          {
+            selector: 'node',
+            style: {
+              label: 'data(label)',
+              'text-wrap': 'wrap',
+              'text-max-width': nodeTextMaxWidth,
+              'text-valign': 'center',
+              'text-halign': 'center',
+              'font-family': NODE_LABEL_FONT_FAMILY,
+              'font-size': NODE_LABEL_FONT_SIZE,
+              'font-weight': NODE_LABEL_FONT_WEIGHT,
+              color: '#1f2933',
+              'background-color': '#ffffff',
+              'border-width': 10,
+              'border-color': '#b8c3d2',
+              width: nodeBoxWidth,
+              height: nodeBoxHeight,
+              shape: 'round-rectangle',
+              'corner-radius': NODE_CORNER_RADIUS,
+              padding: 22
+            }
+          },
+          { selector: 'node[type="problem"]', style: { 'border-color': '#dc2626', 'background-color': '#fef2f2' } },
+          { selector: 'node[type="concept"]', style: { 'border-color': '#16a34a', 'background-color': '#ecfdf3' } },
+              { selector: 'node[type="runtime"]', style: { 'border-color': '#ca8a04', 'background-color': '#fefce8' } },
+              { selector: 'node[type="verify"]', style: { 'border-color': '#ea580c', 'background-color': '#fff7ed' } },
+          { selector: 'node[type="doc"]', style: { 'border-color': '#7c3aed', 'background-color': '#f5f3ff' } },
+          {
+            selector: 'edge',
+            style: {
+              'curve-style': edgeCurveStyle,
+              'control-point-distances': edgeCurveDistance,
+              'control-point-weights': 0.5,
+              'target-arrow-shape': 'triangle',
+              'target-arrow-color': '#94a3b8',
+              'arrow-scale': 5,
+              'line-color': '#94a3b8',
+              width: 8.8,
+              label: '',
+              'font-size': 32,
+              'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              color: '#3f4f5a',
+              'text-background-color': '#ffffff',
+              'text-background-opacity': 1,
+              'text-background-padding': 12,
+              'text-background-shape': 'roundrectangle',
+              'text-border-color': '#d8e0e7',
+              'text-border-width': 1,
+              'text-border-opacity': 1,
+              'text-rotation': 'none',
+              'text-margin-y': -78
+            }
+          },
+          {
+            selector: '.dimmed',
+            style: {
+              opacity: 0.8,
+              'text-opacity': 0.9
+            }
+          },
+          {
+            selector: '.focused',
+            style: {
+              'border-width': 10,
+              'border-color': '#2563eb',
+              opacity: 1,
+              'text-opacity': 1,
+              'z-index': 20
+            }
+          },
+          {
+            selector: '.neighbor',
+            style: {
+              'border-width': 10,
+              'border-color': '#b7c7f4',
+              opacity: 1,
+              'text-opacity': 1,
+              'z-index': 15
+            }
+          },
+          {
+            selector: '.pair-node',
+            style: {
+              'border-width': 10,
+              'border-color': '#2563eb',
+              opacity: 1,
+              'text-opacity': 1,
+              'z-index': 18
+            }
+          },
+          {
+            selector: '.pair-edge',
+            style: {
+              'line-color': '#2563eb',
+              'target-arrow-color': '#2563eb',
+              'control-point-distances': edgeCurveDistance,
+              'arrow-scale': 5,
+              width: 8.8,
+              'text-margin-y': -96,
+              opacity: 1,
+              'text-opacity': 1,
+              'z-index': 20
+            }
+          },
+          {
+            selector: 'node:selected',
+            style: {
+              'border-width': 10,
+              'border-color': '#2563eb'
+            }
+          }
+        ],
+        layout: {
+          name: 'preset',
+          fit: true,
+          padding: 90,
+          animate: false
+        }
+      });
+
+      function fitGraph() {
+        cy.resize();
+        cy.fit(cy.elements(), FIT_GRAPH_PADDING);
+        scheduleEdgeLabels();
+      }
+
+      function edgeLabelNodeScale() {
+        return cy.zoom() || 1;
+      }
+
+      function applyEdgeLabelClearance(iteration = 0) {
+        if (userPositionedGraph || iteration >= EDGE_LABEL_CLEARANCE_ITERATIONS) {
+          scheduleEdgeLabels();
+          return;
+        }
+
+        const zoom = cy.zoom() || 1;
+        let changed = false;
+        cy.edges().forEach((edgeElement) => {
+          const source = cy.getElementById(edgeElement.data('source'));
+          const target = cy.getElementById(edgeElement.data('target'));
+          if (!source.length || !target.length) return;
+
+          const start = source.renderedPosition();
+          const end = target.renderedPosition();
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const renderedLength = Math.hypot(dx, dy);
+          if (renderedLength < 1) return;
+
+          const requiredLength = measureEdgeLabelWidth(edgeElement.data()) * edgeLabelNodeScale() + EDGE_LABEL_LINE_PADDING;
+          if (renderedLength >= requiredLength) return;
+
+          const sourcePosition = source.position();
+          const targetPosition = target.position();
+          const modelDx = targetPosition.x - sourcePosition.x;
+          const modelDy = targetPosition.y - sourcePosition.y;
+          const modelLength = Math.hypot(modelDx, modelDy);
+          if (modelLength < 1) return;
+
+          const shift = (requiredLength - renderedLength) / zoom / 2;
+          const unitX = modelDx / modelLength;
+          const unitY = modelDy / modelLength;
+          source.position({
+            x: sourcePosition.x - unitX * shift,
+            y: sourcePosition.y - unitY * shift
+          });
+          target.position({
+            x: targetPosition.x + unitX * shift,
+            y: targetPosition.y + unitY * shift
+          });
+          changed = true;
+        });
+
+        if (changed) {
+          cy.fit(cy.elements(), FIT_GRAPH_PADDING);
+          scheduleEdgeLabels();
+          window.setTimeout(() => applyEdgeLabelClearance(iteration + 1), EDGE_LABEL_CLEARANCE_DELAY);
+          return;
+        }
+
+        scheduleEdgeLabels();
+      }
+
+      function fitGraphWithClearance() {
+        fitGraph();
+        window.setTimeout(() => applyEdgeLabelClearance(), EDGE_LABEL_CLEARANCE_DELAY);
+      }
+
+      function setActiveLayout(id) {
+        Object.entries(layoutButtons).forEach(([key, button]) => {
+          button.setAttribute('aria-pressed', key === id ? 'true' : 'false');
+        });
+      }
+
+      let userPositionedGraph = false;
+      let edgeLabelFrame = null;
+      const alignedPositions = {
+        problem: { x: 0, y: 0 },
+        concept: { x: 1600, y: 0 },
+        runtime: { x: 3200, y: 0 },
+        verify: { x: 3200, y: 1400 },
+        doc: { x: 1600, y: 1400 }
+      };
+      function applyPresetPositions(positionMap, animate = true) {
+        cy.nodes().forEach((node) => {
+          const nextPosition = positionMap[node.id()];
+          if (nextPosition) node.position(nextPosition);
+        });
+        cy.layout({
+          name: 'preset',
+          fit: true,
+          padding: FIT_GRAPH_PADDING,
+          animate,
+          animationDuration: animate ? 350 : 0
+        }).run();
+        window.setTimeout(fitGraphWithClearance, animate ? 380 : 80);
+      }
+
+      function edgeLabelNormalOffset(edgeElement) {
+        const offset = edgeElement.hasClass('pair-edge') ? EDGE_LABEL_SELECTED_OFFSET : EDGE_LABEL_OFFSET;
+        return offset * edgeLabelNodeScale();
+      }
+
+      function edgeLabelGeometry(edgeElement) {
+        const source = cy.getElementById(edgeElement.data('source'));
+        const target = cy.getElementById(edgeElement.data('target'));
+        if (!source.length || !target.length) return null;
+        const start = source.renderedPosition();
+        const end = target.renderedPosition();
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const length = Math.hypot(dx, dy);
+        if (length < 1) return null;
+        const normalX = -dy / length;
+        const normalY = dx / length;
+        const curveDistance = edgeCurveDistance(edgeElement) * edgeLabelNodeScale();
+        const labelSide = curveDistance < 0 ? -1 : 1;
+        const offset = edgeLabelNormalOffset(edgeElement);
+        return {
+          x: (start.x + end.x) / 2 + normalX * (curveDistance + offset * labelSide),
+          y: (start.y + end.y) / 2 + normalY * (curveDistance + offset * labelSide)
+        };
+      }
+
+      function renderEdgeLabels() {
+        edgeLabelFrame = null;
+        edgeLabelLayer.innerHTML = '';
+        const labelScale = edgeLabelNodeScale();
+        cy.edges().forEach((edgeElement) => {
+          const edgeData = edgeElement.data();
+          const label = edgeData.label;
+          const displayLabel = edgeDisplayLabel(edgeData);
+          const geometry = edgeLabelGeometry(edgeElement);
+          if (!displayLabel || !geometry) return;
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'edge-label-badge';
+          if (edgeElement.hasClass('dimmed')) button.classList.add('is-dimmed');
+          if (edgeElement.hasClass('pair-edge')) button.classList.add('is-pair');
+          button.textContent = displayLabel;
+          button.setAttribute('aria-label', displayLabel === label ? `관계: ${label}` : `관계: ${displayLabel}, 원문: ${label}`);
+          button.style.fontSize = `${EDGE_LABEL_FONT_SIZE * labelScale}px`;
+          button.style.padding = `${EDGE_LABEL_PADDING_Y * labelScale}px ${EDGE_LABEL_PADDING_X * labelScale}px`;
+          button.style.left = `${geometry.x}px`;
+          button.style.top = `${geometry.y}px`;
+          button.style.transform = 'translate(-50%, -50%)';
+          button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            focusEdge(edgeElement);
+          });
+          edgeLabelLayer.appendChild(button);
+        });
+      }
+
+      function scheduleEdgeLabels() {
+        if (edgeLabelFrame !== null) return;
+        edgeLabelFrame = window.requestAnimationFrame(renderEdgeLabels);
+      }
+
+      const selectionState = {
+        mode: 'none',
+        nodes: [],
+        edges: []
+      };
+
+      function setSelectionState(nextState) {
+        selectionState.mode = nextState.mode;
+        selectionState.nodes = nextState.nodes || [];
+        selectionState.edges = nextState.edges || [];
+        cy.elements().removeClass('focused neighbor pair-node pair-edge dimmed');
+      }
+
+      function getLastSelectedNodeId() {
+        return selectionState.nodes[selectionState.nodes.length - 1] || null;
+      }
+
+	      function findDirectEdges(sourceId, targetId) {
+	        return cy.edges().filter((edgeElement) => {
+	          const edge = edgeElement.data();
+	          return (
+	            (edge.source === sourceId && edge.target === targetId) ||
+	            (edge.source === targetId && edge.target === sourceId)
+	          );
+	        });
+	      }
+
+	      function canonicalPairFromDirectEdges(directEdges) {
+	        const primaryEdge = directEdges.first ? directEdges.first() : directEdges[0];
+	        const edge = primaryEdge && primaryEdge.data ? primaryEdge.data() : null;
+	        if (!edge) return null;
+	        return {
+	          sourceNode: cy.getElementById(edge.source),
+	          targetNode: cy.getElementById(edge.target)
+	        };
+	      }
+
+      function clearFocus() {
+        setSelectionState({ mode: 'none', nodes: [], edges: [] });
+        cy.elements().unselect();
+        setDetail('선택 없음', '구조도', '노드나 관계선을 선택하면 해당 항목이 왜 필요한지 표시된다.');
+        scheduleEdgeLabels();
+      }
+
+      function bindRelationButtons() {
+        detailBox.querySelectorAll('[data-next-node-id]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const node = cy.getElementById(button.getAttribute('data-next-node-id'));
+            if (node && node.length) {
+              handleNodeTap(node);
+            }
+          });
+        });
+      }
+
+	      function renderSingleDetail(node) {
+	        const connectedEdges = node.connectedEdges();
+	        const data = node.data();
+	        setDetail(
+              '단일 선택',
+              data.label,
+              data.detail,
+              '',
+              renderRelationList(cy, node, connectedEdges),
+              roleBadgeMarkup(node)
+            );
+	        bindRelationButtons();
+	      }
+
+	      function relationDirectionGlyph(edge, sourceNode, targetNode) {
+	        return edge.source === sourceNode.id() && edge.target === targetNode.id() ? '↓' : '↑';
+	      }
+
+	      function renderPairDetail(sourceNode, targetNode, directEdges) {
+	        const sourceLabel = sourceNode.data('label');
+	        const targetLabel = targetNode.data('label');
+	        const relationCards = directEdges.toArray().map((edgeElement) => {
+	          const edge = edgeElement.data();
+	          const directionGlyph = relationDirectionGlyph(edge, sourceNode, targetNode);
+	          return `
+	            <div class="relation-card">
+	              <span class="relation-main">${directionGlyph} ${escapeHtml(edge.label)}${edge.detail ? `: ${escapeHtml(edge.detail)}` : ''}</span>
+	            </div>
+	          `;
+	        }).join('');
+        const edgeIds = directEdges.toArray().map((edgeElement) => edgeElement.id());
+        setDetail(
+          '쌍 선택',
+          `${sourceLabel} → ${targetLabel}`,
+          '',
+          '',
+          `
+                <div class="detail-grid">
+                      <div class="detail-card ${roleCardClass(sourceNode)}">
+                        <div class="detail-card-heading">
+                          <b>${escapeHtml(sourceLabel)}</b>
+                          <div class="detail-badges">${roleBadgeMarkup(sourceNode)}</div>
+                        </div>
+                        <span>${escapeHtml(sourceNode.data('detail'))}</span>
+                      </div>
+                      ${relationCards}
+                      <div class="detail-card ${roleCardClass(targetNode)}">
+                        <div class="detail-card-heading">
+                          <b>${escapeHtml(targetLabel)}</b>
+                          <div class="detail-badges">${roleBadgeMarkup(targetNode)}</div>
+                        </div>
+                        <span>${escapeHtml(targetNode.data('detail'))}</span>
+                  </div>
+            </div>
+            ${renderPairRelationList(cy, sourceNode, targetNode, {
+              excludeEdgeIds: edgeIds
+            })}
+          `
+        );
+        bindRelationButtons();
+      }
+
+      function applySingleFocus(node) {
+        setSelectionState({ mode: 'single', nodes: [node.id()], edges: [] });
+        cy.elements().not(node).addClass('dimmed');
+        node.addClass('focused');
+        renderSingleDetail(node);
+        scheduleEdgeLabels();
+      }
+
+      function applyPairFocus(sourceNode, targetNode, directEdges) {
+        const visible = sourceNode.union(targetNode).union(directEdges);
+        setSelectionState({
+          mode: 'pair',
+          nodes: [sourceNode.id(), targetNode.id()],
+          edges: directEdges.toArray().map((edgeElement) => edgeElement.id())
+        });
+        cy.elements().not(visible).addClass('dimmed');
+        sourceNode.addClass('pair-node');
+        targetNode.addClass('pair-node');
+        directEdges.addClass('pair-edge');
+        renderPairDetail(sourceNode, targetNode, directEdges);
+        scheduleEdgeLabels();
+      }
+
+      function handleNodeTap(node) {
+        const nodeId = node.id();
+        const lastNodeId = getLastSelectedNodeId();
+        if (!lastNodeId || lastNodeId === nodeId) {
+          applySingleFocus(node);
+          return;
+        }
+        const directEdges = findDirectEdges(lastNodeId, nodeId);
+        if (!directEdges.length) {
+          applySingleFocus(node);
+          return;
+        }
+	        const canonicalPair = canonicalPairFromDirectEdges(directEdges);
+	        if (!canonicalPair) {
+	          applySingleFocus(node);
+	          return;
+	        }
+	        applyPairFocus(canonicalPair.sourceNode, canonicalPair.targetNode, directEdges);
+	      }
+
+      function focusNode(node) {
+        handleNodeTap(node);
+      }
+
+      function focusEdge(edgeElement) {
+        const edge = edgeElement.data();
+        const sourceNode = cy.getElementById(edge.source);
+        const targetNode = cy.getElementById(edge.target);
+        applyPairFocus(sourceNode, targetNode, edgeElement);
+      }
+
+      nodeCount.textContent = `노드 ${cy.nodes().length}`;
+      edgeCount.textContent = `엣지 ${cy.edges().length}`;
+      setDetail('선택 없음', '구조도', '노드나 관계선을 선택하면 해당 항목이 왜 필요한지 표시된다.');
+      scheduleEdgeLabels();
+
+      cy.on('render pan zoom position resize', scheduleEdgeLabels);
+      cy.on('layoutstop', scheduleEdgeLabels);
+
+      cy.on('dragfree', 'node', () => {
+        userPositionedGraph = true;
+        scheduleEdgeLabels();
+      });
+
+      cy.on('tap', 'node', (event) => {
+        focusNode(event.target);
+      });
+
+      cy.on('tap', 'edge', (event) => {
+        focusEdge(event.target);
+      });
+
+      cy.on('tap', (event) => {
+        if (event.target === cy) {
+          clearFocus();
+        }
+      });
+
+      document.getElementById('fit').addEventListener('click', fitGraph);
+      document.getElementById('breadth').addEventListener('click', () => {
+        userPositionedGraph = false;
+        clearFocus();
+        setActiveLayout('breadth');
+        applyPresetPositions(alignedPositions);
+      });
+      document.getElementById('circle').addEventListener('click', () => {
+        userPositionedGraph = false;
+        clearFocus();
+        setActiveLayout('circle');
+        cy.layout({
+          name: 'circle',
+          padding: FIT_GRAPH_PADDING,
+          avoidOverlap: true,
+          nodeDimensionsIncludeLabels: true,
+          animate: true,
+          animationDuration: 350
+        }).run();
+        window.setTimeout(fitGraphWithClearance, 380);
+      });
+
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          clearFocus();
+        }
+      });
+      window.addEventListener('resize', () => window.setTimeout(fitGraph, 120));
+      window.setTimeout(fitGraphWithClearance, 80);
+    });
+  </script>
+</body>
+</html>
