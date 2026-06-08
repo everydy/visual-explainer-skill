@@ -1,0 +1,96 @@
+{
+  "title": "구조도 템플릿",
+  "help": "각 항목은 노드(관계도에서 점처럼 보이는 개념)이고, 화살표는 엣지(두 노드 사이의 관계선)입니다. 노드나 관계선을 누르면 오른쪽 설명이 바뀝니다.",
+  "legend": [
+    { "type": "problem", "label": "문제/출발점" },
+    { "type": "concept", "label": "개념/설계" },
+    { "type": "runtime", "label": "실행/연결" },
+    { "type": "verify", "label": "검증" },
+    { "type": "doc", "label": "문서/운영" }
+  ],
+  "fallback": [
+    "문제는 핵심 개념으로 이어집니다.",
+    "핵심 개념은 실행 구조를 만듭니다.",
+    "실행 구조는 검증과 문서로 고정됩니다."
+  ],
+  "initialDetail": {
+    "kind": "선택 없음",
+    "title": "구조도",
+    "body": "노드나 관계선을 선택하면 해당 항목이 왜 필요한지 표시됩니다.",
+    "hint": "Esc 키나 빈 그래프 영역 클릭으로 전체 관계망으로 돌아갈 수 있습니다."
+  },
+  "nodes": [
+    {
+      "id": "problem",
+      "label": "문제",
+      "type": "problem",
+      "detail": "구조도가 풀어야 하는 출발점입니다.",
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "concept",
+      "label": "핵심 개념",
+      "type": "concept",
+      "detail": "설명 대상의 중심 개념입니다.",
+      "position": { "x": 1600, "y": 0 }
+    },
+    {
+      "id": "runtime",
+      "label": "실행 구조",
+      "type": "runtime",
+      "detail": "개념이 실제 산출물이나 동작으로 이어지는 부분입니다.",
+      "position": { "x": 3200, "y": 0 }
+    },
+    {
+      "id": "verify",
+      "label": "검증",
+      "type": "verify",
+      "detail": "구조도가 제대로 작동하는지 확인하는 기준입니다.",
+      "position": { "x": 3200, "y": 1400 }
+    },
+    {
+      "id": "doc",
+      "label": "문서화",
+      "type": "doc",
+      "detail": "다음 작업자가 이어받을 수 있게 남기는 설명입니다.",
+      "position": { "x": 1600, "y": 1400 }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "problem",
+      "target": "concept",
+      "label": "문제를 개념으로 정리",
+      "displayLabel": "개념으로 정리한다"
+    },
+    {
+      "id": "e2",
+      "source": "concept",
+      "target": "runtime",
+      "label": "개념을 실행으로 연결",
+      "displayLabel": "실행으로 연결한다"
+    },
+    {
+      "id": "e3",
+      "source": "runtime",
+      "target": "verify",
+      "label": "실행 결과를 확인",
+      "displayLabel": "결과를 확인한다"
+    },
+    {
+      "id": "e4",
+      "source": "verify",
+      "target": "doc",
+      "label": "검증 근거를 기록",
+      "displayLabel": "근거를 기록한다"
+    },
+    {
+      "id": "e5",
+      "source": "doc",
+      "target": "concept",
+      "label": "다음 설명에 재사용",
+      "displayLabel": "설명에 재사용한다"
+    }
+  ]
+}

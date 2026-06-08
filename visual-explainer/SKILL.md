@@ -69,7 +69,15 @@ metadata:
 - `comparison-html`: 선택지와 관점 차이를 비교한다.
 - `mini-slide-html`: 작은 슬라이드 묶음처럼 핵심을 넘겨 보게 한다.
 
-`structure-map.html`을 만들 때는 `structure-map-html/templates/structure-map-cytoscape.html`을 먼저 읽고 그 템플릿에서 출발한다. 관계 구조도가 필요한데 HTML을 처음부터 새로 짜지 않는다.
+`structure-map.html`을 만들 때는 `structure-map-html`의 JSON config를 먼저 만들고 `structure-map-html/scripts/render-structure-map.mjs`로 생성한다. 관계 구조도가 필요한데 HTML을 처음부터 새로 짜지 않는다.
+
+```bash
+node structure-map-html/scripts/render-structure-map.mjs \
+  --config /path/to/structure-map.config.json \
+  --out /path/to/output-dir/structure-map.html
+```
+
+config의 세부 필드와 자유도 경계는 `structure-map-html/references/config-contract.md`를 필요할 때만 읽는다.
 
 구조도 템플릿의 시각 기준은 `structure-map-html` 하위 스킬이 소유한다. 노드 라벨 크기, 관계 라벨 크기, 관계 라벨 위치, 노드 박스 크기처럼 사용자가 화면에서 직접 보는 기준을 바꿀 때는 템플릿만 고치지 않고 `structure-map-html/SKILL.md`와 `scripts/validate-output.py`도 함께 맞춘다.
 
@@ -111,6 +119,11 @@ python3 scripts/validate-output.py /path/to/output-dir --last-message /path/to/l
 
 이 스크립트는 네 HTML 파일 존재, 기본 HTML 구조, 최종 답변의 네 파일명 언급을 확인한다.
 `structure-map.html`은 공식 Cytoscape 템플릿 표식과 핵심 인터랙션도 확인한다.
+renderer 경로를 쓴 일반 산출물은 아래처럼 엄격 표식도 함께 확인한다.
+
+```bash
+python3 scripts/validate-output.py /path/to/output-dir --last-message /path/to/last-message.md --require-structure-map-renderer
+```
 
 ## 금지
 

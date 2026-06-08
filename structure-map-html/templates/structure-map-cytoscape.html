@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- STRUCTURE_MAP_RENDERER:TITLE_START -->
   <title>구조도 템플릿</title>
+  <!-- STRUCTURE_MAP_RENDERER:TITLE_END -->
   <!--
     CDN prototype path. For offline-safe artifacts, replace src with:
     assets/cytoscape/cytoscape.min.js
@@ -490,11 +492,15 @@
 <body>
   <main>
     <header class="page-head">
+      <!-- STRUCTURE_MAP_RENDERER:HEADING_START -->
       <h1>구조도 템플릿</h1>
+      <!-- STRUCTURE_MAP_RENDERER:HEADING_END -->
       <details class="help-popover">
         <summary aria-label="구조도 읽는 법">?</summary>
         <div class="help-card">
+          <!-- STRUCTURE_MAP_RENDERER:HELP_START -->
           각 항목은 노드(관계도에서 점처럼 보이는 개념)이고, 화살표는 엣지(두 노드 사이의 관계선)다. 노드나 관계선을 누르면 오른쪽 설명이 바뀐다.
+          <!-- STRUCTURE_MAP_RENDERER:HELP_END -->
         </div>
       </details>
     </header>
@@ -510,37 +516,44 @@
           <span class="pill" id="node-count">노드 0</span>
           <span class="pill" id="edge-count">엣지 0</span>
           <ul class="legend" aria-label="범례">
+            <!-- STRUCTURE_MAP_RENDERER:LEGEND_START -->
             <li><span class="dot problem"></span><span>문제/출발점</span></li>
             <li><span class="dot concept"></span><span>개념/설계</span></li>
             <li><span class="dot runtime"></span><span>실행/연결</span></li>
             <li><span class="dot verify"></span><span>검증</span></li>
             <li><span class="dot doc"></span><span>문서/운영</span></li>
+            <!-- STRUCTURE_MAP_RENDERER:LEGEND_END -->
           </ul>
         </div>
         <div id="cy" aria-label="Cytoscape 노드-엣지 그래프"></div>
         <div id="edge-label-layer" class="edge-label-layer" aria-label="관계 라벨"></div>
         <div id="fallback" class="fallback">
+          <!-- STRUCTURE_MAP_RENDERER:FALLBACK_START -->
           Cytoscape.js를 불러오지 못해 텍스트 fallback을 표시한다.
           <ul>
             <li>문제는 핵심 개념으로 이어진다.</li>
             <li>핵심 개념은 실행 구조를 만든다.</li>
             <li>실행 구조는 검증과 문서로 고정된다.</li>
           </ul>
+          <!-- STRUCTURE_MAP_RENDERER:FALLBACK_END -->
         </div>
       </div>
 
       <aside class="side" aria-label="구조도 설명">
         <section class="details" id="details" aria-live="polite">
+          <!-- STRUCTURE_MAP_RENDERER:INITIAL_DETAIL_START -->
           <span class="kind">선택 없음</span>
           <strong>구조도</strong>
           <span>노드나 관계선을 선택하면 해당 항목이 왜 필요한지 표시된다.</span>
           <span class="hint">Esc 키나 빈 그래프 영역 클릭으로 전체 관계망으로 돌아갈 수 있다.</span>
+          <!-- STRUCTURE_MAP_RENDERER:INITIAL_DETAIL_END -->
         </section>
       </aside>
     </section>
   </main>
 
   <script>
+    // STRUCTURE_MAP_RENDERER:GRAPH_ELEMENTS_START
     const graphElements = [
       { data: { id: 'problem', label: '문제', type: 'problem', detail: '구조도가 풀어야 하는 출발점이다.' }, position: { x: 0, y: 0 } },
       { data: { id: 'concept', label: '핵심 개념', type: 'concept', detail: '설명 대상의 중심 개념이다.' }, position: { x: 1600, y: 0 } },
@@ -553,6 +566,7 @@
       { data: { id: 'e4', source: 'verify', target: 'doc', label: '검증 근거를 기록', displayLabel: '근거를 기록한다' } },
       { data: { id: 'e5', source: 'doc', target: 'concept', label: '다음 설명에 재사용', displayLabel: '설명에 재사용한다' } }
     ];
+    // STRUCTURE_MAP_RENDERER:GRAPH_ELEMENTS_END
 
     const detailBox = document.getElementById('details');
     const nodeCount = document.getElementById('node-count');
